@@ -63,13 +63,18 @@ class Twitter:
         self.print_statuses(self.request('http://api.twitter.com/1/statuses/home_timeline.json', login=True))
         
     def print_statuses(self, statuses):
+        message = 'Install simplejson python module or install python version 2.6'
         try:
-            import simplejson as json
-            for status in json.loads(statuses):
-                self.print_status(status)
-            
+            import simplejson as json            
         except ImportError:
-            print 'Install simplejson python module or install python version 2.6'
+            try:
+                import json
+            except ImportError:
+                print message
+                sys.exit(1)
+        
+        for status in json.loads(statuses):
+            self.print_status(status)
     
     def print_status(self, status):
          ret  = ' %s - %s\n' % (status['user']['name'], status['created_at'])
