@@ -188,7 +188,6 @@ if __name__ == '__main__':
     cp.add_command('user', 'Display user timeline: user username', callback=twitter.print_user_tweets)
     cp.add_command('update', 'Update your status: update ["status message"]', callback=twitter.update_status)
     cp.add_command('remove-conf', 'Remove configuration file', callback=twitter.remove_conf)
-    cp.parse_args()
 
     try:
         cp.parse_args()
