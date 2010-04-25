@@ -27,8 +27,7 @@ class Twitter:
             password = self.read_value('and password', True)            
             self.credentials = base64.encodestring('%(username)s:%(password)s' % locals())[:-1]
             if self.read_value('Save preferences ? (y/n)') == 'y':
-                self.save_conf()
-        
+                self.save_conf()        
 
     def save_conf(self):
         if not os.path.exists(self.conf_path):
@@ -39,7 +38,8 @@ class Twitter:
         print 'Preferences saved in "%s"' % self.conf_path
     
     def remove_conf(self):
-        os.remove(self.conf_path)
+        if os.path.exists(self.conf_path):
+            os.remove(self.conf_path)
     
     def load_credentials(self):
         if not os.path.exists(self.conf_path):
@@ -111,6 +111,7 @@ class CommandParser:
     
     def __init__(self, usage_text='%s command [options]' % os.path.basename(sys.argv[0])):
         self.commands = {}
+        self.command_ranking = []
         self.usage_text = usage_text
         self.biggest_name = 0
         
@@ -119,6 +120,7 @@ class CommandParser:
             'help': help,
             'callback': callback,
             'options_parser':options_parser}
+        self.command_ranking.append(name)
         
         if len(name) > self.biggest_name:
             self.biggest_name = len(name)
@@ -141,7 +143,8 @@ class CommandParser:
         print self.usage_text
         print ''
         print 'Commands'
-        for name, command in self.commands.items():
+        for name in self.command_ranking:
+            command = self.commands[name]
             print '   %s:%s%s' % (name, ' ' * (2 + self.biggest_name - len(name)), command['help'])
             command['options_parser'].parse_args(['asd'])
             command['options_parser'].print_help()
@@ -153,10 +156,10 @@ if __name__ == '__main__':
     twitter = Twitter()
     
     cp = CommandParser()
-    cp.add_command('update', 'Update your status: update ["status message"]', callback=twitter.update_status)
-    cp.add_command('remove-conf', 'Remove configuration file', callback=twitter.remove_conf)
     cp.add_command('home', 'Display home timeline', callback=twitter.print_home_timeline)
     cp.add_command('user', 'Display user timeline: user username', callback=twitter.print_user_tweets)
+    cp.add_command('update', 'Update your status: update ["status message"]', callback=twitter.update_status)
+    cp.add_command('remove-conf', 'Remove configuration file', callback=twitter.remove_conf)
     cp.parse_args()
 
 
