@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.6
+#!/usr/bin/env python
 
 # -*- coding: iso-8859-1 -*-
 __version__ = "$Revision: 0.2 $"
@@ -76,6 +76,8 @@ class Twitter:
             time.sleep(int(delay))
         
     def print_statuses(self, statuses):
+        if len(statuses) > 0:
+            print '\n---- %d tweets ----' % len(statuses)
         for status in statuses[::-1]: #reverse order
             self.print_status(status)
     
@@ -118,7 +120,8 @@ class Twitter:
                 print 'username or password are incorrect'
             else:
                 print e
-            
+                
+            sys.exit(1)
         
     def read_value(self, message, secure=False):
         message=' > %s: ' % message
@@ -181,13 +184,16 @@ class CommandParser:
         self.command_ranking = []
         self.usage_text = usage_text
         self.biggest_name = 0
+        self.default = None
         
-    def add_command(self, name, help, callback, options_parser = OptionParser(add_help_option=False, usage='')):
+    def add_command(self, name, help, callback, options_parser = OptionParser(add_help_option=False, usage=''), default=False):
         self.commands[name] = {
             'help': help,
             'callback': callback,
             'options_parser':options_parser}
         self.command_ranking.append(name)
+        if default:
+            self.default = name
         
         if len(name) > self.biggest_name:
             self.biggest_name = len(name)
@@ -195,7 +201,10 @@ class CommandParser:
     def parse_args(self, args=None):
         if not args:
             args = sys.argv[1:]
-        if len(args) == 0:
+
+        if len(args) == 0 and self.default:
+            args = [self.default]
+        elif len(args) == 0 or '--help' in args:
             self.usage()
         
         c = args.pop(0)         
@@ -212,7 +221,11 @@ class CommandParser:
         print 'Commands'
         for name in self.command_ranking:
             command = self.commands[name]
-            print '   %s:%s%s' % (name, ' ' * (2 + self.biggest_name - len(name)), command['help'])
+            if self.default == name:
+                default = ' (default)'
+            else:
+                default = ''
+            print '   %s:%s%s%s' % (name, ' ' * (2 + self.biggest_name - len(name)), command['help'], default)
             command['options_parser'].parse_args(['asd'])
             command['options_parser'].print_help()
         
@@ -223,7 +236,7 @@ if __name__ == '__main__':
     twitter = Twitter()
     
     cp = CommandParser()
-    cp.add_command('home', 'Display home timeline', callback=twitter.print_home_timeline)
+    cp.add_command('home', 'Display home timeline', callback=twitter.print_home_timeline, default=True)
     cp.add_command('live', 'Display live home timeline', callback=twitter.live)
     cp.add_command('user', 'Display user timeline: user username', callback=twitter.print_user_tweets)
     cp.add_command('update', 'Update your status: update ["status message"]', callback=twitter.update_status)
