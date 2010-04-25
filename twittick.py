@@ -56,13 +56,49 @@ class Twitter:
         else:
             print 'Status is empty, nothing sent'
     
-    def print_user_tweets(self, username=None):
-        self.print_statuses(self.request('http://api.twitter.com/1/statuses/user_timeline.json?screen_name=%s' % username, login=True))
+    def print_user_tweets(self, username):
+        self.print_statuses(self.load_user_tweets(username))
 
     def print_home_timeline(self):
-        self.print_statuses(self.request('http://api.twitter.com/1/statuses/home_timeline.json', login=True))
+        self.print_statuses(self.load_home_timeline())
+
+    def live(self, delay=60):
+        import time, pprint
+        try:
+            import pynotify
+            notification_ready = pynotify.init("Twittick notifications")
+        except:
+            notification_ready = False
+            
+        displayed = []
+        while True:
+            data = filter(lambda x: x['id'] not in displayed, self.load_home_timeline())
+            self.print_statuses(data)
+            if notification_ready and len(data) > 0:
+                n = pynotify.Notification('Twittick', '%d new tweets' % len(data), 'no-icon')
+                n.set_urgency(pynotify.URGENCY_LOW)
+                n.set_timeout(1000) # 10 seconds
+                n.show()
+            map(lambda x: displayed.append(x['id']), data)
+            time.sleep(int(delay))
         
     def print_statuses(self, statuses):
+        for status in statuses[::-1]: #reverse order
+            self.print_status(status)
+    
+    def print_status(self, status):
+         ret  = ' %s - %s\n' % (status['user']['name'], status['created_at'])
+         ret += '  %s\n' % status['text']
+         ret += '---'
+         print ret
+
+    def load_home_timeline(self):
+        return self.from_json(self.request('http://api.twitter.com/1/statuses/home_timeline.json', login=True))
+
+    def load_user_tweets(self, username):
+        return self.from_json(self.request('http://api.twitter.com/1/statuses/user_timeline.json?screen_name=%s' % username, login=True))
+
+    def from_json(self, string):
         message = 'Install simplejson python module or install python version 2.6'
         try:
             import simplejson as json            
@@ -72,16 +108,7 @@ class Twitter:
             except ImportError:
                 print message
                 sys.exit(1)
-        
-        for status in json.loads(statuses):
-            self.print_status(status)
-    
-    def print_status(self, status):
-         ret  = ' %s - %s\n' % (status['user']['name'], status['created_at'])
-         ret += '  %s\n' % status['text']
-         ret += '---'
-         
-         print ret
+        return json.loads(string)
     
     def request(self, url, data=None, login=False):
         req = urllib2.Request(url)
@@ -157,13 +184,13 @@ if __name__ == '__main__':
     
     cp = CommandParser()
     cp.add_command('home', 'Display home timeline', callback=twitter.print_home_timeline)
+    cp.add_command('live', 'Display live home timeline', callback=twitter.live)
     cp.add_command('user', 'Display user timeline: user username', callback=twitter.print_user_tweets)
     cp.add_command('update', 'Update your status: update ["status message"]', callback=twitter.update_status)
     cp.add_command('remove-conf', 'Remove configuration file', callback=twitter.remove_conf)
     cp.parse_args()
 
-
-    
-    
-    
-    
+    try:
+        cp.parse_args()
+    except KeyboardInterrupt:
+        pass
