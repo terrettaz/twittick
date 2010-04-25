@@ -73,7 +73,7 @@ class Twitter:
                 print message
                 sys.exit(1)
         
-        for status in json.loads(statuses):
+        for status in json.loads(statuses)[::-1]: #reverse order
             self.print_status(status)
     
     def print_status(self, status):
