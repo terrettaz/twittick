@@ -1,0 +1,11 @@
+Twittick is a command-line twitter client
+
+Version 0.2
+
+  * handle notifications (Growl and Gtk)
+
+Version 0.1
+
+  * display home timeline
+  * display user timeline
+  * display update your status

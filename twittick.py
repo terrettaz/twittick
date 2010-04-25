@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.6
 
 # -*- coding: iso-8859-1 -*-
-__version__ = "$Revision: 0.1 $"
+__version__ = "$Revision: 0.2 $"
 __author__ = "Pierrick Terrettaz"
 __date__ = "2010-02-21"
 
@@ -129,6 +129,10 @@ class Twitter:
 class TwitterNotifier:
     
     def __init__(self):
+        self.icon_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'twitter-icon.png')
+        if not os.path.exists(self.icon_path):
+            self.icon_path = None
+
         if self._init_growl():
             self.ready = True
         elif self._init_pynotify():
@@ -144,7 +148,9 @@ class TwitterNotifier:
         try:
             import Growl
             self.system = 'growl'
-            self.growl_notifier = Growl.GrowlNotifier('Twittick', ['tweet'])
+            
+            icon = Growl.Image.imageFromPath(self.icon_path)
+            self.growl_notifier = Growl.GrowlNotifier('Twittick', ['tweet'], applicationIcon=icon)
             self.growl_notifier.register()
             return True
         except ImportError:
@@ -163,7 +169,7 @@ class TwitterNotifier:
         
     def _notify_pynotify(self, title, body):    
         import pynotify
-        n = pynotify.Notification(title, body, 'no-icon')
+        n = pynotify.Notification(title, body, self.icon_path)
         n.set_urgency(pynotify.URGENCY_LOW)
         n.set_timeout(1000) # 10 seconds
         n.show()
