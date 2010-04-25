@@ -63,22 +63,15 @@ class Twitter:
         self.print_statuses(self.load_home_timeline())
 
     def live(self, delay=60):
-        import time, pprint
-        try:
-            import pynotify
-            notification_ready = pynotify.init("Twittick notifications")
-        except:
-            notification_ready = False
+        import time
+        notifier = TwitterNotifier()
             
         displayed = []
         while True:
             data = filter(lambda x: x['id'] not in displayed, self.load_home_timeline())
             self.print_statuses(data)
-            if notification_ready and len(data) > 0:
-                n = pynotify.Notification('Twittick', '%d new tweets' % len(data), 'no-icon')
-                n.set_urgency(pynotify.URGENCY_LOW)
-                n.set_timeout(1000) # 10 seconds
-                n.show()
+            if notifier.ready and len(data) > 0:
+                n = notifier.notify('Twittick', '%d new tweets' % len(data))
             map(lambda x: displayed.append(x['id']), data)
             time.sleep(int(delay))
         
@@ -132,8 +125,49 @@ class Twitter:
         if secure:
             return getpass.getpass(message)
         return raw_input(message)
-        
 
+class TwitterNotifier:
+    
+    def __init__(self):
+        if self._init_growl():
+            self.ready = True
+        elif self._init_pynotify():
+            self.ready = True
+        else:
+            self.ready = False
+    
+    def notify(self, title, body):
+        notifier = getattr(self, "_notify_%s" % self.system)
+        notifier(title, body)
+    
+    def _init_growl(self):
+        try:
+            import Growl
+            self.system = 'growl'
+            self.growl_notifier = Growl.GrowlNotifier('Twittick', ['tweet'])
+            self.growl_notifier.register()
+            return True
+        except ImportError:
+            return False
+    
+    def _init_pynotify(self):
+        try:
+            import pynotify
+            self.system = 'pynotify'
+            return pynotify.init("Twittick notifications")
+        except ImportError:
+            return False
+    
+    def _notify_growl(self, title, body):
+        self.growl_notifier.notify('tweet', title, body)
+        
+    def _notify_pynotify(self, title, body):    
+        import pynotify
+        n = pynotify.Notification(title, body, 'no-icon')
+        n.set_urgency(pynotify.URGENCY_LOW)
+        n.set_timeout(1000) # 10 seconds
+        n.show()
+            
 class CommandParser:
     
     def __init__(self, usage_text='%s command [options]' % os.path.basename(sys.argv[0])):
@@ -158,7 +192,7 @@ class CommandParser:
         if len(args) == 0:
             self.usage()
         
-        c = args.pop(0)
+        c = args.pop(0)         
         if not self.commands.has_key(c):
             self.usage()
 
